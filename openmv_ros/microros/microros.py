@@ -3,7 +3,6 @@ import struct
 class rospy(object):
   _publishers = []
   _subscribers = []
-  _toPublish = []
 
   def __init__(self):
     self.usb = pyb.USB_VCP()
@@ -27,6 +26,25 @@ class rospy(object):
     while len(self._toPublish) > 0:
         msg = self._toPublish.pop()
 
+    
+    # Publish first as it can publish while reveiving
+    for pub in self._publishers:
+        for msg in pub.to_publish:
+            if pub.topic_id != None:
+                data_buff = msg.serialize()
+                header_buff = bytes([255, 254]) # sync
+                header_buff += len(data_buff).to_bytes(2, "little") # Length of the message
+                header_buff += bytes(1) # Placeholder for checksum
+                header_buff[4] = self.checksum(header_buff)
+                msg_buff = bytes(0)
+                msg_buff += pub.topic_id.to_bytes(2, "little") # topic
+                msg_buff += data_buff
+                msg_buff += bytes(1)
+                msg_buff[len(msg_buff)-1] = self.checksum(msg_buff)
+                self.usb.send(header_buff + msg_buff)
+        pub.to_publish=[]
+
+    # Do some sync and avoid flushs
     # Subscribers
     if self.usb.any():
         header = bytes(4)
@@ -76,6 +94,7 @@ class rospy(object):
                 result.deserialize(message_data[2:-1])
                 break;
 
+
   def advertise(self, _publisher):
     self._publishers.append(_publisher)
     pass # Send advertisement through USB
@@ -91,16 +110,19 @@ class rospy(object):
   def send_topics(self):
     pass
 
+  def handle_publish(self):
+    pass
+
 class Publisher(object):
   topic_id = None
+  to_publish = []
 
   def __init__(self, topic_name, datatype)
     self.datatype = datatype
     self.topic_name = topic_name
-    pass
 
-  def publish(self):
-    
+  def publish(self, msg):
+    self.to_publish.append(msg)
 
 class Subscriber(object):
   topic_id = None

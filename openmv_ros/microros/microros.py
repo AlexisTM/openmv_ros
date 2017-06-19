@@ -1,8 +1,13 @@
+# Is for Python3 on openMV camera
+
 import struct
 
 class rospy(object):
   _publishers = []
   _subscribers = []
+
+  START_BYTE = 0xFF
+  INDIGO_VERSION = 0xFE
 
   def __init__(self):
     self.usb = pyb.USB_VCP()
@@ -11,6 +16,7 @@ class rospy(object):
   def spinOnce(self):   
     # Handle serial communication
     """
+      ROSSerial protocol:
       1st Byte - Sync Flag (Value: 0xff)
       2nd Byte - Sync Flag / Protocol version
       3rd Byte - Message Length (N) - Low Byte
@@ -22,11 +28,6 @@ class rospy(object):
       Byte N+8 - Checksum over Topic ID and Message Data N+2
     """
 
-    # Publishers
-    while len(self._toPublish) > 0:
-        msg = self._toPublish.pop()
-
-    
     # Publish first as it can publish while reveiving
     for pub in self._publishers:
         for msg in pub.to_publish:
@@ -44,56 +45,59 @@ class rospy(object):
                 self.usb.send(header_buff + msg_buff)
         pub.to_publish=[]
 
-    # Do some sync and avoid flushs
     # Subscribers
     if self.usb.any():
-        header = bytes(4)
-        read_bytes = self.usb.readinto(header)
+        start_tracker = bytes(1)
+        # CHECK readinto return number of bytes written?
+        # Read while we have data
+        while self.usb.readinto(start_tracker) > 1:
+            # Sync, if in sync, read the message and call back
+            if start_tracker == self.START_BYTE:
+                self.usb.readinto(start_tracker)
+                if start_tracker == self.INDIGO_VERSION:
+                    self.readMessage()
 
-        if read_bytes < len(header):
-            # flush if we did not have the correct data
-            self.usb.readall()
+  def readMessage(self):
+    header_end = bytes(3)
+    read_bytes = self.usb.readinto(header_end)
+
+    if read_bytes != len(header_end):
+        # Wrong number of bytes in header
+        return
+
+    header = bytes([self.START_BYTE, self.INDIGO_VERSION]) + header_end
+    data_len = int(header[2]) + int(header[3])*256
+    
+    if not checksum(header):
+        # Wrong checksum in header
+        return
+
+    data = bytes(data_len + 3)
+    read_bytes = self.usb.readinto(data)
+
+    if read_bytes != len(data):
+        # Wrong number of bytes in data
+        return
+
+    if not checksum(data):
+        # Wrong checksum in data
+        return
+
+    topic_id = int(data[0]) + int(data[1])*256
+
+    # CHECK make lookup table with topicID => Subscriber, dataType
+    msg = data[2:-1]
+
+    for sub in self._subscribers:
+        if topic_id == sub.topic_id:
+            result = sub.datatype()
+            result.deserialize(message_data[2:-1])
+            sub.callback(result)
             return
 
-        if header[0] != 0xff:
-            self.usb.readall()
-            return
-
-        if header[1] != 0xfe: # Indigo+
-            self.usb.readall()
-            return
-
-        dataLength = int(header[2]) + int(header[3])*256
-        
-        if header[4] != self.checksum(header):
-            self.usb.readall()
-            return
-
-        # Topic ID + checksum => dataLength+3
-        message_data = bytes(dataLength+3)
-        read_bytes = self.usb.readinto(message_data)
-
-        if read_bytes < len(message_data):
-            self.usb.readall()
-            return
-
-        topic_id = int(message_data[0]) + int(message_data[1])*256
-
-        if message_data[dataLength-1] != self.checksum(message_data):
-            self.usb.readall()
-            return
-
-        if topic_id == 0:
-          return self.send_topics()
-
-        topic_id = int(message_data[0]) + int(message_data[1])*256
-
-        for sub in self._subscribers:
-            if sub.topic_id == topic_id:
-                result = sub.datatype()
-                result.deserialize(message_data[2:-1])
-                break;
-
+    # Got no subscriber for this message.
+    if topic_id == 0:
+        self.send_topics()
 
   def advertise(self, _publisher):
     self._publishers.append(_publisher)
@@ -105,12 +109,10 @@ class rospy(object):
 
   def checksum(self, buff):
     _result = 255 - (sum(buff[:-1])%256)
-    return _result
+    _crc = buff[len(buff)-1]
+    return _result == _crc
 
   def send_topics(self):
-    pass
-
-  def handle_publish(self):
     pass
 
 class Publisher(object):

@@ -119,7 +119,7 @@ class Publisher(object):
   topic_id = None
   to_publish = []
 
-  def __init__(self, topic_name, datatype)
+  def __init__(self, topic_name, datatype):
     self.datatype = datatype
     self.topic_name = topic_name
 
@@ -129,20 +129,19 @@ class Publisher(object):
 class Subscriber(object):
   topic_id = None
 
-  def __init__(self, topic_name, datatype, callback)
+  def __init__(self, topic_name, datatype, callback):
     self.datatype = datatype
     self.topic_name = topic_name
     self.callback = callback
 
 
-class Struct:
-
+class Struct(object):
     def __init__(self, format):
         self.format = format
-        self.size = calcsize(format)
+        self.size = struct.calcsize(format)
 
     def unpack(self, buf):
-        return unpack(self.format, buf)
+        return struct.unpack(self.format, buf)
 
     def pack(self, *vals):
-        return pack(self.format, *vals)
+        return struct.pack(self.format, *vals)

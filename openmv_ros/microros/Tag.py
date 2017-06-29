@@ -1,4 +1,5 @@
 from microros import Struct
+import struct
 
 class Tag(object):
   _md5sum = "978c5dc6bcab3c6d1b43fa94c6e22015"

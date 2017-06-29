@@ -1,4 +1,5 @@
 from microros import Struct
+import struct
 
 class TopicInfo(object):
   _md5sum = "0ad51f88fc44892f8c10684077646005"
@@ -46,43 +47,27 @@ int32 buffer_size
     self.md5sum = ''
     self.buffer_size = 0
 
-  def serialize(self, buff):
+  def serialize(self):
     """
     serialize message into buffer
     :param buff: buffer, ``StringIO``
     """
-    try:
-      buff.write(_struct_H.pack(self.topic_id))
-      _x = self.topic_name
-      length = len(_x)
-      if python3 or type(_x) == unicode:
-        _x = _x.encode('utf-8')
-        length = len(_x)
-      if python3:
-        buff.write(struct.pack('<I%sB'%length, length, *_x))
-      else:
-        buff.write(struct.pack('<I%ss'%length, length, _x))
-      _x = self.message_type
-      length = len(_x)
-      if python3 or type(_x) == unicode:
-        _x = _x.encode('utf-8')
-        length = len(_x)
-      if python3:
-        buff.write(struct.pack('<I%sB'%length, length, *_x))
-      else:
-        buff.write(struct.pack('<I%ss'%length, length, _x))
-      _x = self.md5sum
-      length = len(_x)
-      if python3 or type(_x) == unicode:
-        _x = _x.encode('utf-8')
-        length = len(_x)
-      if python3:
-        buff.write(struct.pack('<I%sB'%length, length, *_x))
-      else:
-        buff.write(struct.pack('<I%ss'%length, length, _x))
-      buff.write(_struct_i.pack(self.buffer_size))
-    except:
-      pass
+    buff = bytes(0)
+    buff += _struct_H.pack(self.topic_id)
+    _x = self.topic_name
+    _x = _x.encode('utf-8')
+    length = len(_x)
+    buff += struct.pack('<I%sB'%length, length, *_x)
+    _x = self.message_type
+    _x = _x.encode('utf-8')
+    length = len(_x)
+    buff += struct.pack('<I%sB'%length, length, *_x)
+    _x = self.md5sum
+    _x = _x.encode('utf-8')
+    length = len(_x)
+    buff += struct.pack('<I%sB'%length, length, *_x)
+    buff += _struct_i.pack(self.buffer_size)
+    return buff
 
   def deserialize(self, str):
     """
@@ -99,28 +84,19 @@ int32 buffer_size
       (length,) = _struct_I.unpack(str[start:end])
       start = end
       end += length
-      if python3:
-        self.topic_name = str[start:end].decode('utf-8')
-      else:
-        self.topic_name = str[start:end]
+      self.topic_name = str[start:end].decode('utf-8')
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
       start = end
       end += length
-      if python3:
-        self.message_type = str[start:end].decode('utf-8')
-      else:
-        self.message_type = str[start:end]
+      self.message_type = str[start:end].decode('utf-8')
       start = end
       end += 4
       (length,) = _struct_I.unpack(str[start:end])
       start = end
       end += length
-      if python3:
-        self.md5sum = str[start:end].decode('utf-8')
-      else:
-        self.md5sum = str[start:end]
+      self.md5sum = str[start:end].decode('utf-8')
       start = end
       end += 4
       (self.buffer_size,) = _struct_i.unpack(str[start:end])

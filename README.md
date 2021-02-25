@@ -1,6 +1,8 @@
 # openmv_ros
 
-## NOT ACTIVELY DEVELOPPED (Waiting for time to spend)
+## NOT ACTIVELY DEVELOPPED, refer to the fallback solution ;)
+
+I changed company and do nto have the hardware anymore.
 
 ## Fallback solution
 

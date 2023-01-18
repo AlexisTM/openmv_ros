@@ -3,8 +3,6 @@
 > Due to the chnage of idea management-wise at the time and the lack of hardware available to me, this is unmaintained.
 > Refer to the fallback solution ;)
 
-I changed company and do nto have the hardware anymore.
-
 ## Fallback solution
 
 You can do the communication using the serial CDC driver of the OpenMV board.
